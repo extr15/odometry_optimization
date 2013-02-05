@@ -27,7 +27,7 @@ def function_to_min(params, *args):
     vect = []
 
     # First, set the parameter into the parameters server
-    x0 = np.asscalar(params)
+    x0 = np.asscalar(np.round(params))
     rospy.set_param('/stereo_odometer/nms_tau', x0)
 
     # Start the roslaunch process for visual odometry
@@ -40,7 +40,7 @@ def function_to_min(params, *args):
 
     # Save the result
     iteration_num += 1
-    results_table.append([iteration_num] + [x0] + [ret])
+    results_table.append([iteration_num] + [x0] + [np.mean(vect)])
     return ret
 
 def roslaunch(ros_package, launch_file):
