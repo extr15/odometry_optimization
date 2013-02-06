@@ -21,7 +21,7 @@ iteration_num = 0
 vect = []
 results_table = []
 
-def function_to_min(params, *args):
+def function_to_min(param, *args):
     """
     Function to be minimized. Simply launches the odometry and processes the results
     """
@@ -31,9 +31,10 @@ def function_to_min(params, *args):
     gt_file = args[1]
     sample_step = args[2]
     cmd = args[3]
+    error_to_min = args[4]
 
     # First, set the parameters into the parameters server
-    x = np.asscalar(np.round(params[0]))
+    x = np.asscalar(np.round(param[0]))
     rospy.set_param(param_list, x)
 
     # Start the roslaunch process for visual odometry
@@ -45,7 +46,7 @@ def function_to_min(params, *args):
     # Save the result
     iteration_num += 1
     results_table.append([iteration_num] + [x] + [errors[0]] + [errors[1]])
-    return float(errors[0])
+    return float(errors[error_to_min])
 
 def callback(data):
     """
@@ -79,13 +80,15 @@ if __name__ == "__main__":
     roslaunch_file = params['roslaunch_file']
     ros_topic = params['ros_topic']
     gt_file = params['gt_file']
+    brute = params['brute']
     sample_step = params['sample_step']
     max_iter = params['max_iter']
+    error_to_min = params['error_to_min'] 
+    save_output_file = params['save_output_file'] 
     param_name = params['param_name']
-
-    # Parameter bounds
-    min_bounds = np.array([40.0])
-    max_bounds = np.array([60.0])
+    param_min = params['param_min']
+    param_max = params['param_max']
+    param_step = params['param_step']
 
     # Launch the listener to capture the odometry outputs
     listener(ros_topic)
@@ -93,13 +96,54 @@ if __name__ == "__main__":
     # Build the roslaunch command to run the odometry
     cmd = "roslaunch " + roslaunch_package + " " + roslaunch_file
 
-    # Init the parameters to be optimized and go go go
-    xopt = fminbound(function_to_min, min_bounds, max_bounds, (param_name, gt_file, sample_step, cmd), 1e-05, max_iter, False, 3)
+    # Output to file
+    output = ""
 
-    # Show the result
-    header = [ "Iteration", "Params", "Trans. MAE", "Yaw-Rot. MAE" ]
-    results_table.append(["-> BEST <-"] + [np.asscalar(np.round(xopt))] + ["---"] + ["---"])
-    utils.toRSTtable([header] + results_table)
+    for i in range(len(param_name)):
 
+        results_table = []
+        output += "Optimizing parameter: " + param_name[i] + "\n"
+        print "================================================="
+        print "Optimizing parameter: " + param_name[i]
+        print "================================================="
+
+        if (brute):
+            # Brute force
+            xopt = -1
+            error = 999
+            for x in range(param_min[i], param_max[i] + param_step[i], param_step[i]):
+
+                # Call the odometry evaluation function
+                err_ret = function_to_min([x], 
+                    param_name[i], 
+                    gt_file, 
+                    sample_step, 
+                    cmd, 
+                    error_to_min)
+
+                # Check optimal value
+                if (err_ret < error):
+                    error = err_ret
+                    xopt = x
+        else:
+            # Launch the optimization function 
+            xopt = fminbound(function_to_min, 
+                param_min[i], 
+                param_max[i], 
+                (param_names[i], gt_file, sample_step, cmd, error_to_min), 
+                1e-05, 
+                max_iter, 
+                False, 
+                3)
+
+        # Show the result
+        header = [ "Iteration", "Params", "Trans. MAE", "Yaw-Rot. MAE" ]
+        results_table.append(["-> BEST <-"] + [np.asscalar(np.round(xopt))] + ["---"] + ["---"])
+        output += utils.toRSTtable([header] + results_table) + "\n"
+
+    # If user specified a file, save results to file
+    if (save_output_file != ""):
+        with open(save_output_file, 'w') as outfile:
+            outfile.write(output)
 
     
