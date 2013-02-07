@@ -1,12 +1,12 @@
 roslaunch_package: odometry_evaluation # Ros package that contains the launch file for odometry evaluation
 roslaunch_file: odometry_evaluation.launch # The roslaunch file to launch the odometry evaluation
 ros_topic: /stereo_odometer/odometry # Topic to be listened to capture the visual odometry output. The message type of this topic must be nav_msgs::Odometry)
-gt_file: /home/plnegre/Workspace/ROS_fuerte/uib-ros/odometry_evaluation/data/gt/roses.txt # The ground truth (gt) file to validate the odometry (used to compute the errors between gt and odometry estimation)
+gt_file: data/gt/cirs-timefixed-run3.txt # The ground truth (gt) file to validate the odometry (used to compute the errors between gt and odometry estimation)
 sample_step: 0.05 # Distance to sample equally the gt and odometry data
 brute: True # True to apply brute force and try all possible combinations. False to apply an optimization function
 max_iter: 3 # Maximum number of iterations in the optimization algorithm (only if brute = False)
 error_to_min: 0 # 0 to minimize translation error, 1 to minimize rotation error
-save_output_file: optimization.txt
+save_output_file: output/optimization_report.txt
 param_name: # Parameter name (in ros parameter server) to be tunned.
  0: /stereo_odometer/nms_n
  1: /stereo_odometer/nms_tau

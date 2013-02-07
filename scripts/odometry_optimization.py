@@ -34,7 +34,7 @@ def function_to_min(param, *args):
     error_to_min = args[4]
 
     # First, set the parameters into the parameters server
-    x = np.asscalar(np.round(param[0]))
+    x = param[0]
     rospy.set_param(param_list, x)
 
     # Start the roslaunch process for visual odometry
@@ -96,11 +96,10 @@ if __name__ == "__main__":
     # Build the roslaunch command to run the odometry
     cmd = "roslaunch " + roslaunch_package + " " + roslaunch_file
 
-    # Output to file
-    output = ""
-
     for i in range(len(param_name)):
 
+        # Output to file
+        output = ""
         results_table = []
         output += "Optimizing parameter: " + param_name[i] + "\n"
         print "================================================="
@@ -111,7 +110,8 @@ if __name__ == "__main__":
             # Brute force
             xopt = -1
             error = 999
-            for x in range(param_min[i], param_max[i] + param_step[i], param_step[i]):
+            x = param_min[i]
+            while (x < param_max[i] + param_step[i]):
 
                 # Call the odometry evaluation function
                 err_ret = function_to_min([x], 
@@ -125,6 +125,8 @@ if __name__ == "__main__":
                 if (err_ret < error):
                     error = err_ret
                     xopt = x
+            x += param_step[i]
+
         else:
             # Launch the optimization function 
             xopt = fminbound(function_to_min, 
@@ -141,9 +143,9 @@ if __name__ == "__main__":
         results_table.append(["-> BEST <-"] + [np.asscalar(np.round(xopt))] + ["---"] + ["---"])
         output += utils.toRSTtable([header] + results_table) + "\n"
 
-    # If user specified a file, save results to file
-    if (save_output_file != ""):
-        with open(save_output_file, 'w') as outfile:
-            outfile.write(output)
+        # If user specified a file, save the results
+        if (save_output_file != ""):
+            with open(save_output_file, 'a+') as outfile:
+                outfile.write(output)
 
     
