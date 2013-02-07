@@ -97,10 +97,7 @@ if __name__ == "__main__":
     error_to_min = params['error_to_min'] 
     save_output_file = params['save_output_file'] 
     save_output_data = params['save_output_data'] 
-    param_name = params['param_name']
-    param_min = params['param_min']
-    param_max = params['param_max']
-    param_step = params['param_step']
+    parameters = params['parameters']
 
     # The header for the output file
     header = [ "Iteration", "Params", "Trans. MAE", "Yaw-Rot. MAE" ]
@@ -111,26 +108,26 @@ if __name__ == "__main__":
     # Build the roslaunch command to run the odometry
     cmd = "roslaunch " + roslaunch_package + " " + roslaunch_file
 
-    for i in range(len(param_name)):
+    for i in range(len(parameters)):
         iteration_num = 0
 
         # Output to file
         output = ""
         results_table = []
-        output += "Optimizing parameter: " + param_name[i] + "\n"
+        output += "Optimizing parameter: " + parameters[i]['name'] + "\n"
         print "================================================="
-        print "Optimizing parameter: " + param_name[i]
+        print "Optimizing parameter: " + parameters[i]['name']
         print "================================================="
 
         if (brute):
             # Brute force
             xopt = -1
             error = 999
-            x = param_min[i]
-            while (x < param_max[i] + param_step[i]):
+            x = parameters[i]['min_value']
+            while (x < parameters[i]['max_value'] + parameters[i]['step']):
                 # Call the odometry evaluation function
                 err_ret = function_to_min(x, 
-                    param_name[i], 
+                    parameters[i]['name'], 
                     gt_file, 
                     sample_step, 
                     cmd, 
@@ -140,14 +137,14 @@ if __name__ == "__main__":
                 if (err_ret < error):
                     error = err_ret
                     xopt = x
-                x += param_step[i]
+                x += parameters[i]['step']
 
         else:
             # Launch the optimization function 
             xopt = fminbound(function_to_min, 
-                param_min[i], 
-                param_max[i], 
-                (param_name[i], gt_file, sample_step, cmd, error_to_min), 
+                parameters[i]['min_value'], 
+                parameters[i]['max_value'], 
+                (parameters[i]['name'], gt_file, sample_step, cmd, error_to_min), 
                 1e-05, 
                 max_iter, 
                 False, 
@@ -155,7 +152,7 @@ if __name__ == "__main__":
 
          # If user specified a directory to save the optimization data
         if (save_output_data != ""):
-            param_full_name = param_name[i].split("/");
+            param_full_name = parameters[i]['name'].split("/");
             with open(save_output_data + param_full_name[-1] + ".txt", 'w') as outfile:
                 outfile.write("# ")
                 for n in range(len(header)):

@@ -8,47 +8,44 @@ max_iter: 3 # Maximum number of iterations in the optimization algorithm (only i
 error_to_min: 0 # 0 to minimize translation error, 1 to minimize rotation error, 2 to minimize the euclidean norm between both errors
 save_output_file: output/optimization_report.txt # Output file with the optimization summary
 save_output_data: output/plots/ # Output directory where optimization tables will be saved
-param_name: # Parameter name (in ros parameter server) to be tunned.
- 0: /stereo_odometer/nms_n
- 1: /stereo_odometer/nms_tau
- 2: /stereo_odometer/match_binsize
- 3: /stereo_odometer/match_radius
- 4: /stereo_odometer/match_disp_tolerance
- 5: /stereo_odometer/outlier_disp_tolerance
- 6: /stereo_odometer/outlier_flow_tolerance
- 7: /stereo_odometer/max_features
- 8: /stereo_odometer/ransac_iters
- 9: /stereo_odometer/inlier_threshold
-param_min: # Minimum value for the parameter
- 0: 1
- 1: 40
- 2: 40
- 3: 150
- 4: 1
- 5: 1
- 6: 1
- 7: 1
- 8: 150
- 9: 0.2
-param_max: # Maximum value for the parameter
- 0: 6
- 1: 60
- 2: 60
- 3: 250
- 4: 6
- 5: 10
- 6: 10
- 7: 6
- 8: 250
- 9: 4
-param_step: # Step size (only if brute = True)
- 0: 1
- 1: 1
- 2: 1
- 3: 2
- 4: 1
- 5: 1
- 6: 1
- 7: 1
- 8: 2
- 9: 0.2
+parameters:
+  - name: /stereo_odometer/nms_n # Parameter name (in ros parameter server) to be tunned.
+    min_value: 1 # Minimum value for the parameter
+    max_value: 6 # Maximum value for the parameter
+    step: 1 # Step size (only if brute = True)
+  - name: /stereo_odometer/nms_tau
+    min_value: 40
+    max_value: 60
+    step: 1
+  - name: /stereo_odometer/match_binsize
+    min_value: 40
+    max_value: 60
+    step: 1
+  - name: /stereo_odometer/match_radius
+    min_value: 150
+    max_value: 250
+    step: 1
+  - name: /stereo_odometer/match_disp_tolerance
+    min_value: 1
+    max_value: 6
+    step: 1
+  - name: /stereo_odometer/outlier_disp_tolerance
+    min_value: 1
+    max_value: 10
+    step: 1
+  - name: /stereo_odometer/outlier_flow_tolerance
+    min_value: 1
+    max_value: 10
+    step: 1
+  - name: /stereo_odometer/max_features
+    min_value: 1
+    max_value: 6
+    step: 1
+  - name: /stereo_odometer/ransac_iters
+    min_value: 150
+    max_value: 250
+    step: 2
+  - name: /stereo_odometer/inlier_threshold
+    min_value: 0.2
+    max_value: 4
+    step: 0.2
