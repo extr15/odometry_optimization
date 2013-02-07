@@ -112,6 +112,7 @@ if __name__ == "__main__":
     cmd = "roslaunch " + roslaunch_package + " " + roslaunch_file
 
     for i in range(len(param_name)):
+        iteration_num = 0
 
         # Output to file
         output = ""
