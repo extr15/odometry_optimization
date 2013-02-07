@@ -4,6 +4,7 @@ import roslib; roslib.load_manifest('odometry_optimization')
 import rospy
 import yaml
 import os
+import math
 import numpy as np
 import post_processing
 from viso2_ros.msg import VisoInfo
@@ -34,7 +35,9 @@ def function_to_min(param, *args):
     error_to_min = args[4]
 
     # First, set the parameters into the parameters server
-    x = param[0]
+    if type(param) is np.float64:
+        param = np.asscalar(param)
+    x = param
     rospy.set_param(param_list, x)
 
     # Start the roslaunch process for visual odometry
@@ -46,7 +49,15 @@ def function_to_min(param, *args):
     # Save the result
     iteration_num += 1
     results_table.append([iteration_num] + [x] + [errors[0]] + [errors[1]])
-    return float(errors[error_to_min])
+
+    # Return the error to minimize
+    if error_to_min == 0:
+        ret = float(errors[0])
+    elif error_to_min == 1:
+        ret = float(errors[1])
+    else:
+        ret = math.sqrt(float(errors[0])*float(errors[0]) + float(errors[1])*float(errors[1]))
+    return ret
 
 def callback(data):
     """
@@ -85,10 +96,14 @@ if __name__ == "__main__":
     max_iter = params['max_iter']
     error_to_min = params['error_to_min'] 
     save_output_file = params['save_output_file'] 
+    save_output_data = params['save_output_data'] 
     param_name = params['param_name']
     param_min = params['param_min']
     param_max = params['param_max']
     param_step = params['param_step']
+
+    # The header for the output file
+    header = [ "Iteration", "Params", "Trans. MAE", "Yaw-Rot. MAE" ]
 
     # Launch the listener to capture the odometry outputs
     listener(ros_topic)
@@ -112,9 +127,8 @@ if __name__ == "__main__":
             error = 999
             x = param_min[i]
             while (x < param_max[i] + param_step[i]):
-
                 # Call the odometry evaluation function
-                err_ret = function_to_min([x], 
+                err_ret = function_to_min(x, 
                     param_name[i], 
                     gt_file, 
                     sample_step, 
@@ -125,21 +139,33 @@ if __name__ == "__main__":
                 if (err_ret < error):
                     error = err_ret
                     xopt = x
-            x += param_step[i]
+                x += param_step[i]
 
         else:
             # Launch the optimization function 
             xopt = fminbound(function_to_min, 
                 param_min[i], 
                 param_max[i], 
-                (param_names[i], gt_file, sample_step, cmd, error_to_min), 
+                (param_name[i], gt_file, sample_step, cmd, error_to_min), 
                 1e-05, 
                 max_iter, 
                 False, 
                 3)
 
-        # Show the result
-        header = [ "Iteration", "Params", "Trans. MAE", "Yaw-Rot. MAE" ]
+         # If user specified a directory to save the optimization data
+        if (save_output_data != ""):
+            param_full_name = param_name[i].split("/");
+            with open(save_output_data + param_full_name[-1] + ".txt", 'w') as outfile:
+                outfile.write("# ")
+                for n in range(len(header)):
+                    outfile.write(header[n] + " ")
+                outfile.write("\n")
+                for row in results_table:
+                    for n in range(len(row)):
+                        outfile.write(str(row[n]) + " ")
+                    outfile.write("\n")
+
+        # Build the results table
         results_table.append(["-> BEST <-"] + [np.asscalar(np.round(xopt))] + ["---"] + ["---"])
         output += utils.toRSTtable([header] + results_table) + "\n"
 
@@ -147,5 +173,3 @@ if __name__ == "__main__":
         if (save_output_file != ""):
             with open(save_output_file, 'a+') as outfile:
                 outfile.write(output)
-
-    

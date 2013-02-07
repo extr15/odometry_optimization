@@ -5,8 +5,9 @@ gt_file: data/gt/cirs-timefixed-run3.txt # The ground truth (gt) file to validat
 sample_step: 0.05 # Distance to sample equally the gt and odometry data
 brute: True # True to apply brute force and try all possible combinations. False to apply an optimization function
 max_iter: 3 # Maximum number of iterations in the optimization algorithm (only if brute = False)
-error_to_min: 0 # 0 to minimize translation error, 1 to minimize rotation error
-save_output_file: output/optimization_report.txt
+error_to_min: 0 # 0 to minimize translation error, 1 to minimize rotation error, 2 to minimize the euclidean norm between both errors
+save_output_file: output/optimization_report.txt # Output file with the optimization summary
+save_output_data: output/plots/ # Output directory where optimization tables will be saved
 param_name: # Parameter name (in ros parameter server) to be tunned.
  0: /stereo_odometer/nms_n
  1: /stereo_odometer/nms_tau
