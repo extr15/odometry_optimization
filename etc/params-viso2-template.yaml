@@ -11,42 +11,52 @@ save_output_file: output/optimization_report.txt # Output file with the optimiza
 save_output_data: output/plots/ # Output directory where optimization tables will be saved
 parameters:
   - name: /stereo_odometer/nms_n # Parameter name (in ros parameter server) to be tunned.
+    default: 3 # Default value. To be set when the optimization for this parameter finishes.
     min_value: 1 # Minimum value for the parameter
     max_value: 6 # Maximum value for the parameter
     step: 1 # Step size (only if brute = True)
   - name: /stereo_odometer/nms_tau
+    default: 50
     min_value: 40
     max_value: 60
     step: 1
   - name: /stereo_odometer/match_binsize
+    default: 50
     min_value: 40
     max_value: 60
     step: 1
   - name: /stereo_odometer/match_radius
+    default: 200
     min_value: 150
     max_value: 250
     step: 1
   - name: /stereo_odometer/match_disp_tolerance
+    default: 2
     min_value: 1
     max_value: 6
     step: 1
   - name: /stereo_odometer/outlier_disp_tolerance
+    default: 5
     min_value: 1
     max_value: 10
     step: 1
   - name: /stereo_odometer/outlier_flow_tolerance
+    default: 5
     min_value: 1
     max_value: 10
     step: 1
   - name: /stereo_odometer/max_features
+    default: 2
     min_value: 1
     max_value: 6
     step: 1
   - name: /stereo_odometer/ransac_iters
+    default: 200
     min_value: 150
     max_value: 250
     step: 2
   - name: /stereo_odometer/inlier_threshold
+    default: 1.5
     min_value: 0.2
     max_value: 4
     step: 0.2

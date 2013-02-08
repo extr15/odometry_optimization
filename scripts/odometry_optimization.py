@@ -46,10 +46,8 @@ def function_to_min(param, *args):
     # In Fovis algorithm all parameters must be set as string.
     if (algorithm == "viso2"):
         rospy.set_param(param_name, x)
-    elif (algorithm == "fovis"):
-        rospy.set_param(param_name, str(x))
     else:
-        print "Ooops, algorithm parameter must be 'viso2' or 'fovis'"
+        rospy.set_param(param_name, str(x))
 
     # Start the roslaunch process for visual odometry
     os.system(cmd)
@@ -105,10 +103,8 @@ def info_listener(topic, algorithm):
     """
     if (algorithm == "viso2"):
         rospy.Subscriber(topic + "/info", VisoInfo, info_callback)
-    elif (algorithm == "fovis"):
-        rospy.Subscriber(topic + "/info", FovisInfo, info_callback)
     else:
-        print "Ooops, algorithm parameter must be 'viso2' or 'fovis'"
+        rospy.Subscriber(topic + "/info", FovisInfo, info_callback)
     
 
 if __name__ == "__main__":
@@ -129,6 +125,9 @@ if __name__ == "__main__":
     save_output_file = params['save_output_file'] 
     save_output_data = params['save_output_data'] 
     parameters = params['parameters']
+
+    # Sanity check
+    assert(algorithm == "viso2" or algorithm == "fovis")
 
     # The header for the output file
     header = [ "Iteration", "Params", "Trans. MAE", "Yaw-Rot. MAE", "Runtime" ]
@@ -184,6 +183,12 @@ if __name__ == "__main__":
                 max_iter, 
                 False, 
                 3)
+
+        # When the optimization for this parameter finishes, set it to default value again
+        if (algorithm == "viso2"):
+            rospy.set_param(parameters[i]['name'], parameters[i]['default'])
+        else:
+            rospy.set_param(parameters[i]['name'], str(parameters[i]['default']))
 
          # If user specified a directory to save the optimization data
         if (save_output_data != ""):

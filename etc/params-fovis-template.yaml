@@ -11,42 +11,52 @@ save_output_file: output/optimization_report.txt # Output file with the optimiza
 save_output_data: output/plots/ # Output directory where optimization tables will be saved
 parameters:
   - name: /stereo_odometer/feature_window_size
-    min_value: 3
-    max_value: 19
+    default: 9
+    min_value: 7
+    max_value: 21
     step: 2
   - name: /stereo_odometer/max_pyramid_level
+    default: 3
     min_value: 1
     max_value: 6
     step: 1
   - name: /stereo_odometer/inlier_max_reprojection_error
+    default: 1.5
     min_value: 0.2
     max_value: 4
     step: 0.2
   - name: /stereo_odometer/clique_inlier_threshold
+    default: 0.1
     min_value: 0
     max_value: 3
     step: 0.05
   - name: /stereo_odometer/min_features_for_estimate
+    default: 10
     min_value: 5
     max_value: 20
     step: 1
   - name: /stereo_odometer/max_mean_reprojection_error
+    default: 10
     min_value: 5 
     max_value: 15
     step: 0.1
   - name: /stereo_odometer/use_subpixel_refinement
+    default: 1
     min_value: 0
     max_value: 1
     step: 1
   - name: /stereo_odometer/feature_search_window
+    default: 25
     min_value: 19
     max_value: 39
     step: 2
   - name: /stereo_odometer/target_pixels_per_feature
+    default: 250
     min_value: 200
     max_value: 300
     step: 2
   - name: /stereo_odometer/update_target_features_with_refined
+    default: 0
     min_value: 0
     max_value: 1
     step: 1
