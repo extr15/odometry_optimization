@@ -39,9 +39,9 @@ parameters:
     max_value: 1
     step: 1
   - name: /stereo_odometer/feature_search_window
-    min_value: 20
-    max_value: 40
-    step: 1
+    min_value: 19
+    max_value: 39
+    step: 2
   - name: /stereo_odometer/target_pixels_per_feature
     min_value: 200
     max_value: 300
