@@ -91,23 +91,16 @@ def odometry_listener(topic):
     """
     rospy.Subscriber(topic + "/odometry", Odometry, odometry_callback)
 
-def info_listener(topic):
+def info_listener(topic, algorithm):
     """
     Defines the listener for the information message of viso2_ros
     """
-    viso2 = True
-    try:
+    if (algorithm == "viso2"):
         rospy.Subscriber(topic + "/info", VisoInfo, info_callback)
-    except Exception, e:
-        viso2 = False
-        pass
-
-    if (viso2 == False):
-        try:
-            rospy.Subscriber(topic + "/info", FovisInfo, info_callback)
-        except Exception, e:
-            print "Ooops, no message found neither VisoInfo nor FovisInfo."
-            pass
+    elif:
+        rospy.Subscriber(topic + "/info", FovisInfo, info_callback)
+    else:
+        print "Ooops, no message found neither VisoInfo nor FovisInfo."
     
 
 if __name__ == "__main__":
@@ -119,6 +112,7 @@ if __name__ == "__main__":
     roslaunch_package = params['roslaunch_package']
     roslaunch_file = params['roslaunch_file']
     ros_topic = params['ros_topic']
+    algorithm = params['algorithm']
     gt_file = params['gt_file']
     brute = params['brute']
     sample_step = params['sample_step']
@@ -135,7 +129,7 @@ if __name__ == "__main__":
     odometry_listener(ros_topic)
 
     # Launch the listener to capture the odometry info
-    info_listener(ros_topic)
+    info_listener(ros_topic, algorithm)
 
     # Build the roslaunch command to run the odometry
     cmd = "roslaunch " + roslaunch_package + " " + roslaunch_file

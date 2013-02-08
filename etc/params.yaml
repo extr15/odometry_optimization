@@ -1,6 +1,7 @@
 roslaunch_package: odometry_evaluation # Ros package that contains the launch file for odometry evaluation
 roslaunch_file: odometry_evaluation.launch # The roslaunch file to launch the odometry evaluation
 ros_topic: /stereo_odometer # Topic to be listened to capture the visual odometry and information outputs. This must be the name of the parent odometry node.
+algorithm: viso2 # The visual odometer algorithm. Can be 'viso2' or 'fovis'
 gt_file: /home/plnegre/Workspace/ROS_fuerte/uib-ros/odometry_evaluation/data/gt/cirs-timefixed-run3.txt # The ground truth (gt) file to validate the odometry (used to compute the errors between gt and odometry estimation)
 sample_step: 0.05 # Distance to sample equally the gt and odometry data
 brute: True # True to apply brute force and try all possible combinations. False to apply an optimization function
