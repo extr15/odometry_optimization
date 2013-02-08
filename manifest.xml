@@ -11,6 +11,7 @@
   <depend package="nav_msgs"/>
   <depend package="rospy"/>
   <depend package="viso2_ros"/>
+  <depend package="fovis_ros"/>
   <depend package="odometry_evaluation"/>
 
 </package>

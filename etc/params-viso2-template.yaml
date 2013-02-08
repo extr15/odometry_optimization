@@ -1,7 +1,7 @@
 roslaunch_package: odometry_evaluation # Ros package that contains the launch file for odometry evaluation
 roslaunch_file: odometry_evaluation.launch # The roslaunch file to launch the odometry evaluation
 ros_topic: /stereo_odometer # Topic to be listened to capture the visual odometry and information outputs. This must be the name of the parent odometry node.
-gt_file: /home/plnegre/Workspace/ROS_fuerte/uib-ros/odometry_evaluation/data/gt/cirs-timefixed-run3.txt # The ground truth (gt) file to validate the odometry (used to compute the errors between gt and odometry estimation)
+gt_file: data/gt/cirs-timefixed-run3.txt # The ground truth (gt) file to validate the odometry (used to compute the errors between gt and odometry estimation)
 sample_step: 0.05 # Distance to sample equally the gt and odometry data
 brute: True # True to apply brute force and try all possible combinations. False to apply an optimization function
 max_iter: 3 # Maximum number of iterations in the optimization algorithm (only if brute = False)
@@ -11,5 +11,41 @@ save_output_data: output/plots/ # Output directory where optimization tables wil
 parameters:
   - name: /stereo_odometer/nms_n # Parameter name (in ros parameter server) to be tunned.
     min_value: 1 # Minimum value for the parameter
-    max_value: 1 # Maximum value for the parameter
+    max_value: 6 # Maximum value for the parameter
     step: 1 # Step size (only if brute = True)
+  - name: /stereo_odometer/nms_tau
+    min_value: 40
+    max_value: 60
+    step: 1
+  - name: /stereo_odometer/match_binsize
+    min_value: 40
+    max_value: 60
+    step: 1
+  - name: /stereo_odometer/match_radius
+    min_value: 150
+    max_value: 250
+    step: 1
+  - name: /stereo_odometer/match_disp_tolerance
+    min_value: 1
+    max_value: 6
+    step: 1
+  - name: /stereo_odometer/outlier_disp_tolerance
+    min_value: 1
+    max_value: 10
+    step: 1
+  - name: /stereo_odometer/outlier_flow_tolerance
+    min_value: 1
+    max_value: 10
+    step: 1
+  - name: /stereo_odometer/max_features
+    min_value: 1
+    max_value: 6
+    step: 1
+  - name: /stereo_odometer/ransac_iters
+    min_value: 150
+    max_value: 250
+    step: 2
+  - name: /stereo_odometer/inlier_threshold
+    min_value: 0.2
+    max_value: 4
+    step: 0.2

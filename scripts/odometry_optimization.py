@@ -8,6 +8,7 @@ import math
 import numpy as np
 import post_processing
 from viso2_ros.msg import VisoInfo
+from fovis_ros.msg import FovisInfo
 from nav_msgs.msg import Odometry
 from scipy.optimize import fminbound
 from array import array
@@ -21,13 +22,15 @@ class Error(Exception):
 iteration_num = 0
 vect = []
 results_table = []
+runtime = []
 
 def function_to_min(param, *args):
     """
     Function to be minimized. Simply launches the odometry and processes the results
     """
-    global iteration_num, vect, results_table
+    global iteration_num, vect, results_table, runtime
     vect = []
+    runtime = []
     param_list = args[0]
     gt_file = args[1]
     sample_step = args[2]
@@ -48,7 +51,7 @@ def function_to_min(param, *args):
 
     # Save the result
     iteration_num += 1
-    results_table.append([iteration_num] + [x] + [errors[0]] + [errors[1]])
+    results_table.append([iteration_num] + [x] + [errors[0]] + [errors[1]] + ["{:10.6f}".format(np.average(runtime, 0))])
 
     # Return the error to minimize
     if error_to_min == 0:
@@ -59,9 +62,9 @@ def function_to_min(param, *args):
         ret = math.sqrt(float(errors[0])*float(errors[0]) + float(errors[1])*float(errors[1]))
     return ret
 
-def callback(data):
+def odometry_callback(data):
     """
-    Processes the messages recived from viso2_ros
+    Processes the messages recived from odometry msg
     """
     global vect
     # Build the row
@@ -75,11 +78,37 @@ def callback(data):
     str(data.pose.covariance[0])]
     vect.append(row)
 
-def listener(topic):
+def info_callback(data):
+    """
+    Processes the messages recived from info msg
+    """
+    global runtime
+    runtime.append(data.runtime)
+
+def odometry_listener(topic):
     """
     Defines the listener for the information message of viso2_ros
     """
-    rospy.Subscriber(topic, Odometry, callback)
+    rospy.Subscriber(topic + "/odometry", Odometry, odometry_callback)
+
+def info_listener(topic):
+    """
+    Defines the listener for the information message of viso2_ros
+    """
+    viso2 = True
+    try:
+        rospy.Subscriber(topic + "/info", VisoInfo, info_callback)
+    except Exception, e:
+        viso2 = False
+        pass
+
+    if (viso2 == False):
+        try:
+            rospy.Subscriber(topic + "/info", FovisInfo, info_callback)
+        except Exception, e:
+            print "Ooops, no message found neither VisoInfo nor FovisInfo."
+            pass
+    
 
 if __name__ == "__main__":
     rospy.init_node('odometry_optimization')
@@ -100,10 +129,13 @@ if __name__ == "__main__":
     parameters = params['parameters']
 
     # The header for the output file
-    header = [ "Iteration", "Params", "Trans. MAE", "Yaw-Rot. MAE" ]
+    header = [ "Iteration", "Params", "Trans. MAE", "Yaw-Rot. MAE", "Runtime" ]
 
     # Launch the listener to capture the odometry outputs
-    listener(ros_topic)
+    odometry_listener(ros_topic)
+
+    # Launch the listener to capture the odometry info
+    info_listener(ros_topic)
 
     # Build the roslaunch command to run the odometry
     cmd = "roslaunch " + roslaunch_package + " " + roslaunch_file
@@ -164,7 +196,8 @@ if __name__ == "__main__":
                     outfile.write("\n")
 
         # Build the results table
-        results_table.append(["-> BEST <-"] + [np.asscalar(np.round(xopt))] + ["---"] + ["---"])
+        rows = [header] + results_table
+        results_table.append(["-> BEST <-"] + [np.asscalar(np.round(xopt))] + ["---"] + ["---"] + ["---"])
         output += utils.toRSTtable([header] + results_table) + "\n"
 
         # If user specified a file, save the results
