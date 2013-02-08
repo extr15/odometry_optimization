@@ -97,7 +97,7 @@ def info_listener(topic, algorithm):
     """
     if (algorithm == "viso2"):
         rospy.Subscriber(topic + "/info", VisoInfo, info_callback)
-    elif:
+    elif (algorithm == "fovis"):
         rospy.Subscriber(topic + "/info", FovisInfo, info_callback)
     else:
         print "Ooops, no message found neither VisoInfo nor FovisInfo."
