@@ -1,16 +1,52 @@
 roslaunch_package: odometry_evaluation # Ros package that contains the launch file for odometry evaluation
 roslaunch_file: odometry_evaluation.launch # The roslaunch file to launch the odometry evaluation
-ros_topic: /stereo_odometer # Topic to be listened to capture the visual odometry and information outputs. This must be the name of the parent odometry node.
-algorithm: viso2 # The visual odometer algorithm. Can be 'viso2' or 'fovis'
-gt_file: /home/plnegre/Workspace/ROS_fuerte/uib-ros/odometry_evaluation/data/gt/cirs-timefixed-run3.txt # The ground truth (gt) file to validate the odometry (used to compute the errors between gt and odometry estimation)
+ros_topic: /stereo_odometer # Topic to be listened to capture the visual odometry output. The message type of this topic must be nav_msgs::Odometry)
+algorithm: fovis # The visual odometer algorithm. Can be 'viso2' or 'fovis'
+gt_file: data/gt/cirs-timefixed-run3.txt # The ground truth (gt) file to validate the odometry (used to compute the errors between gt and odometry estimation)
 sample_step: 0.05 # Distance to sample equally the gt and odometry data
 brute: True # True to apply brute force and try all possible combinations. False to apply an optimization function
 max_iter: 3 # Maximum number of iterations in the optimization algorithm (only if brute = False)
-error_to_min: 1 # 0 to minimize translation error, 1 to minimize rotation error, 2 to minimize the euclidean norm between both errors
+error_to_min: 0 # 0 to minimize translation error, 1 to minimize rotation error, 2 to minimize the euclidean norm between both errors
 save_output_file: output/optimization_report.txt # Output file with the optimization summary
 save_output_data: output/plots/ # Output directory where optimization tables will be saved
 parameters:
-  - name: /stereo_odometer/nms_n # Parameter name (in ros parameter server) to be tunned.
-    min_value: 1 # Minimum value for the parameter
-    max_value: 1 # Maximum value for the parameter
-    step: 1 # Step size (only if brute = True)
+  - name: /stereo_odometer/feature_window_size
+    min_value: 7
+    max_value: 21
+    step: 2
+  - name: /stereo_odometer/max_pyramid_level
+    min_value: 1
+    max_value: 6
+    step: 1
+  - name: /stereo_odometer/inlier_max_reprojection_error
+    min_value: 0.2
+    max_value: 4
+    step: 0.2
+  - name: /stereo_odometer/clique_inlier_threshold
+    min_value: 0
+    max_value: 3
+    step: 0.05
+  - name: /stereo_odometer/min_features_for_estimate
+    min_value: 5
+    max_value: 20
+    step: 1
+  - name: /stereo_odometer/max_mean_reprojection_error
+    min_value: 5 
+    max_value: 15
+    step: 0.1
+  - name: /stereo_odometer/use_subpixel_refinement
+    min_value: 0
+    max_value: 1
+    step: 1
+  - name: /stereo_odometer/feature_search_window
+    min_value: 20
+    max_value: 40
+    step: 1
+  - name: /stereo_odometer/target_pixels_per_feature
+    min_value: 200
+    max_value: 300
+    step: 2
+  - name: /stereo_odometer/update_target_features_with_refined
+    min_value: 0
+    max_value: 1
+    step: 1

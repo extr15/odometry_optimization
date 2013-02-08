@@ -31,17 +31,25 @@ def function_to_min(param, *args):
     global iteration_num, vect, results_table, runtime
     vect = []
     runtime = []
-    param_list = args[0]
+    param_name = args[0]
     gt_file = args[1]
     sample_step = args[2]
     cmd = args[3]
     error_to_min = args[4]
+    algorithm = args[5]
 
     # First, set the parameters into the parameters server
     if type(param) is np.float64:
         param = np.asscalar(param)
     x = param
-    rospy.set_param(param_list, x)
+
+    # In Fovis algorithm all parameters must be set as string.
+    if (algorithm == "viso2"):
+        rospy.set_param(param_name, x)
+    elif (algorithm == "fovis"):
+        rospy.set_param(param_name, str(x))
+    else:
+        print "Ooops, algorithm parameter must be 'viso2' or 'fovis'"
 
     # Start the roslaunch process for visual odometry
     os.system(cmd)
@@ -100,7 +108,7 @@ def info_listener(topic, algorithm):
     elif (algorithm == "fovis"):
         rospy.Subscriber(topic + "/info", FovisInfo, info_callback)
     else:
-        print "Ooops, no message found neither VisoInfo nor FovisInfo."
+        print "Ooops, algorithm parameter must be 'viso2' or 'fovis'"
     
 
 if __name__ == "__main__":
@@ -157,7 +165,8 @@ if __name__ == "__main__":
                     gt_file, 
                     sample_step, 
                     cmd, 
-                    error_to_min)
+                    error_to_min,
+                    algorithm)
 
                 # Check optimal value
                 if (err_ret < error):
@@ -170,7 +179,7 @@ if __name__ == "__main__":
             xopt = fminbound(function_to_min, 
                 parameters[i]['min_value'], 
                 parameters[i]['max_value'], 
-                (parameters[i]['name'], gt_file, sample_step, cmd, error_to_min), 
+                (parameters[i]['name'], gt_file, sample_step, cmd, error_to_min, algorithm), 
                 1e-05, 
                 max_iter, 
                 False, 

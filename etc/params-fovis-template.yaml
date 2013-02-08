@@ -11,9 +11,9 @@ save_output_file: output/optimization_report.txt # Output file with the optimiza
 save_output_data: output/plots/ # Output directory where optimization tables will be saved
 parameters:
   - name: /stereo_odometer/feature_window_size
-    min_value: 1
-    max_value: 20
-    step: 1
+    min_value: 3
+    max_value: 19
+    step: 2
   - name: /stereo_odometer/max_pyramid_level
     min_value: 1
     max_value: 6
@@ -39,9 +39,9 @@ parameters:
     max_value: 1
     step: 1
   - name: /stereo_odometer/feature_search_window
-    min_value: 20
-    max_value: 40
-    step: 1
+    min_value: 19
+    max_value: 39
+    step: 2
   - name: /stereo_odometer/target_pixels_per_feature
     min_value: 200
     max_value: 300
