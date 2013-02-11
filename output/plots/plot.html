@@ -1,0 +1,162 @@
+<html>
+  <head>
+    <!--Load the AJAX API-->
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
+    <script type="text/javascript">
+
+      // Globals
+      var x_idx = 0;
+      var y_idx = 0;
+
+      // Google charts
+      google.load("visualization", "1", {packages:["corechart"]});
+      google.setOnLoadCallback(drawCharts);
+
+      /**
+       * Function to retrieve the data from the server
+       */
+      function drawCharts()
+      {
+        // Get the current path
+        var loc = window.location.pathname;
+        var dir = loc.substring(0, loc.lastIndexOf('/'));
+        $.ajax('http://127.0.0.1:8888/getData?dir=' + dir,
+        {
+          type: 'GET',
+          success: success,
+          error  : error
+        });
+      }
+
+      /**
+       * Callback executed when pcd is recieved from the server
+       */
+      function success(plotData)
+      {
+        var data = plotData.split("|");
+
+        // Get the plot vars
+        var plotVars = data[0].split(";");
+
+        // Show the plot vars in the dom
+        var varListX = document.createElement("select");
+        varListX.setAttribute("name", "var_list_x");
+        varListX.setAttribute("id", "var_list_x");
+        varListX.style.width = "300px";
+        var varListY = document.createElement("select");
+        varListY.setAttribute("name", "var_list_y");
+        varListY.setAttribute("id", "var_list_y");
+        varListY.style.width = "300px";
+        for (var i in plotVars)
+        {
+          if (plotVars[i] != "")
+          {
+            var optionX = document.createElement("option");
+            optionX.setAttribute("value", i);
+            optionX.innerHTML = plotVars[i];
+            var optionY = document.createElement("option");
+            optionY.setAttribute("value", i);
+            optionY.innerHTML = plotVars[i];
+            varListX.appendChild(optionX);
+            varListY.appendChild(optionY);
+          }
+        }
+
+        $("#vars_div").append(varListX);
+        $("#vars_div").append(varListY);
+
+        // Get the plot titles
+        var titles = data[1].split(";");
+
+        /**
+         * Executed when index of xvalue changes
+         */
+        $('#var_list_x').change(function()
+        {
+          x_idx = $(this).val();
+          plot(data, titles);
+        });
+
+        /**
+         * Executed when index of yvalue changes
+         */
+        $('#var_list_y').change(function()
+        {
+          y_idx = $(this).val();
+          plot(data, titles);
+        });
+      }
+
+      /**
+       * Callback executed if error when data is recieved from the server
+       */
+      function error(err)
+      {
+        console.log(err);
+        $("#container").text("Error: " + err);
+      }
+
+      /**
+       * Parse CSV to array
+       */
+      function CSVToArray(text, idxToPlot)
+      {
+          var allTextLines = text.split(/\r\n|\n/);
+          var lines = [];
+
+          for (var i in allTextLines)
+          {
+            // Get the row and select the indices
+            var tarr = allTextLines[i].split(";");
+            var row = [];
+            for (var n in idxToPlot)
+            {
+              row.push(parseFloat(tarr[idxToPlot[n]]));
+            }
+
+            lines.push(row);
+          }
+          return lines;
+      }
+
+      /**
+       * Function to plot the specified data
+       */
+      function plot(data, titles)
+      {
+        // Plot every file
+        var iter = 0;
+        for (var i=2; i<data.length; i++)
+        {
+          // Get the data
+          var dataToPlot = CSVToArray( data[i], [x_idx, y_idx] );
+
+          // Set the header
+          dataToPlot.unshift([$("#var_list_x").find(":selected").text(), $("#var_list_y").find(":selected").text()]);
+
+          // Plot
+          var dataToPlot = google.visualization.arrayToDataTable(dataToPlot);
+          var options = {
+            hAxis: {title: titles[iter]},
+            vAxis: {title: $("#var_list_y").find(":selected").text()},
+          };
+
+          var chartDiv = document.createElement("div");
+          chartDiv.setAttribute("id", "chart_div_"  + iter);
+          $("#container").append(chartDiv);
+          var chart = new google.visualization.LineChart(document.getElementById('chart_div_' + iter));
+          chart.draw(dataToPlot, options);
+          iter++;
+        }
+      }
+
+    </script>
+  </head>
+
+  <body>
+    <!--Div that will hold vars-->
+    <div id="vars_div" style="width: 80%; margin: 20px auto; text-align: center;"></div>
+    <div id="container" style="width: 80%; margin: 20px auto; text-align: center;"></div>
+  </body>
+</html>

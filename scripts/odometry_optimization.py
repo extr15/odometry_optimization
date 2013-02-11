@@ -193,15 +193,13 @@ if __name__ == "__main__":
          # If user specified a directory to save the optimization data
         if (save_output_data != ""):
             param_full_name = parameters[i]['name'].split("/");
-            with open(save_output_data + param_full_name[-1] + ".txt", 'w') as outfile:
-                outfile.write("# ")
-                for n in range(len(header)):
-                    outfile.write(header[n] + " ")
-                outfile.write("\n")
+            with open(save_output_data + param_full_name[-1] + ".csv", 'w') as outfile:
                 for row in results_table:
+                    line = "";
                     for n in range(len(row)):
-                        outfile.write(str(row[n]) + " ")
-                    outfile.write("\n")
+                        line += str(row[n]).replace(" ", "") + ";"
+                    line = line[:-1]
+                    outfile.write(line + "\n")
 
         # Build the results table
         rows = [header] + results_table
