@@ -6,6 +6,7 @@ import yaml
 import os
 import math
 import numpy as np
+import itertools as it
 import post_processing
 from viso2_ros.msg import VisoInfo
 from fovis_ros.msg import FovisInfo
@@ -24,30 +25,97 @@ vect = []
 results_table = []
 runtime = []
 
-def function_to_min(param, *args):
+def optimization(parameters, gt_file, sample_step, cmd, error_to_min, algorithm, max_iter, save_output_data, save_output_file):
+    '''
+    Function to launch the fminbound optimization
+    '''
+    global iteration_num, results_table
+
+    # Loop of parameters. Optimize each parameter individually
+    for i in range(len(parameters)):
+        iteration_num = 0
+
+        # Output to file
+        results_table = []
+        print "================================================="
+        print "Optimizing parameter: " + parameters[i]['name']
+        print "================================================="
+
+        # Launch the optimization function 
+        xopt = fminbound(fminbound_cb, 
+            parameters[i]['min_value'], 
+            parameters[i]['max_value'], 
+            (parameters[i]['name'], gt_file, sample_step, cmd, error_to_min, algorithm), 
+            1e-05, 
+            max_iter, 
+            False, 
+            3)
+
+        # When the optimization for this parameter finishes, set it to default value again
+        set_ros_parameter(parameters[i]['name'], parameters[i]['default'], algorithm)
+
+        # Save results
+        save_output(save_output_data, save_output_file, parameters[i]['name'].split("/")[-1], str(xopt))
+
+def brute_force(parameters, gt_file, sample_step, cmd, error_to_min, algorithm, save_output_data, save_output_file):
+    '''
+    Function to launch the brute force algorithm.
+    '''
+
+    # Compute the table of parameters with all posible combinations
+    e_str = ""
+    for k in range(len(parameters)):
+        iterator = ("np.arange(parameters[" + str(k) + 
+            "]['min_value'], parameters[" + str(k) + 
+            "]['max_value'] + parameters[" + str(k) + 
+            "]['step'], parameters[" + str(k) + "]['step'])")
+        e_str += "range(len(" + iterator + ")),"
+    e_str = e_str[:-1]
+
+    # Initialize the evaluation parameters        
+    xopt = -1
+    error = 999
+
+    # Lauch a simulation for every subset of parameters
+    count = 0;
+    for subset in eval("it.product(" + e_str + ")"):
+
+        # Set the parameters into the server
+        params_str = ""
+        for i in range(len(subset)):
+            param_vector = np.arange(
+                parameters[i]['min_value'], 
+                parameters[i]['max_value'] + parameters[i]['step'], 
+                parameters[i]['step'])
+            param_value = param_vector[subset[i]]
+            set_ros_parameter(parameters[i]['name'], param_value, algorithm)
+            params_str += str(param_value) + "|"
+
+        params_str = params_str[:-1]
+
+        print "================================================="
+        print "Optimizing subset: [ " + params_str + " ]"
+        print "================================================="
+
+        # Then launch the simulation
+        err_ret = launch_simulation(cmd, str(params_str), gt_file, sample_step, error_to_min)
+
+        # Check optimal value
+        if (err_ret < error):
+            error = err_ret
+            xopt = params_str
+        count = count + 1;
+
+    # Save results
+    save_output(save_output_data, save_output_file, "brute-force", xopt)
+
+def launch_simulation(cmd, param_value, gt_file, sample_step, error_to_min):
     """
     Function to be minimized. Simply launches the odometry and processes the results
     """
     global iteration_num, vect, results_table, runtime
     vect = []
     runtime = []
-    param_name = args[0]
-    gt_file = args[1]
-    sample_step = args[2]
-    cmd = args[3]
-    error_to_min = args[4]
-    algorithm = args[5]
-
-    # First, set the parameters into the parameters server
-    if type(param) is np.float64:
-        param = np.asscalar(param)
-    x = param
-
-    # In Fovis algorithm all parameters must be set as string.
-    if (algorithm == "viso2"):
-        rospy.set_param(param_name, x)
-    else:
-        rospy.set_param(param_name, str(x))
 
     # Start the roslaunch process for visual odometry
     os.system(cmd)
@@ -57,7 +125,7 @@ def function_to_min(param, *args):
 
     # Save the result
     iteration_num += 1
-    results_table.append([iteration_num] + [x] + [errors[0]] + [errors[1]] + ["{:10.6f}".format(np.average(runtime, 0))])
+    results_table.append([iteration_num] + [param_value] + [errors[0]] + [errors[1]] + ["{:10.6f}".format(np.average(runtime, 0))])
 
     # Return the error to minimize
     if error_to_min == 0:
@@ -67,6 +135,55 @@ def function_to_min(param, *args):
     else:
         ret = math.sqrt(float(errors[0])*float(errors[0]) + float(errors[1])*float(errors[1]))
     return ret
+
+def save_output(save_output_data, save_output_file, param_name, best_value):
+    '''
+    Function to save the results into files
+    '''
+    global results_table
+
+    # The header for the output file
+    header = [ "Iteration", "Params", "Trans. MAE", "Yaw-Rot. MAE", "Runtime" ]
+    output = "Optimizing parameter: " + param_name + "\n"
+
+    # If user specified a directory to save the optimization data
+    if (save_output_data != ""):
+        with open(save_output_data + param_name + ".csv", 'w') as outfile:
+            for row in results_table:
+                line = "";
+                for n in range(len(row)):
+                    line += str(row[n]).replace(" ", "") + ";"
+                line = line[:-1]
+                outfile.write(line + "\n")
+
+    # If user specified a file, save the results
+    if (save_output_file != ""):
+
+        # Build the results table
+        rows = [header] + results_table
+        results_table.append(["-> BEST <-"] + [best_value] + ["---"] + ["---"] + ["---"])
+        output += utils.toRSTtable([header] + results_table) + "\n"
+
+        # Write the file
+        with open(save_output_file, 'a+') as outfile:
+            outfile.write(output)
+
+def fminbound_cb(param_value, *args):
+    """
+    Function to prepare the data to launch the simulation.
+    """    
+    param_name = args[0]
+    gt_file = args[1]
+    sample_step = args[2]
+    cmd = args[3]
+    error_to_min = args[4]
+    algorithm = args[5]
+
+    # Set the parameter
+    set_ros_parameter(param_name, param_value, algorithm)
+
+    # Start the roslaunch process for visual odometry
+    return launch_simulation(cmd, str(param_value), gt_file, sample_step, error_to_min)
 
 def odometry_callback(data):
     """
@@ -105,6 +222,20 @@ def info_listener(topic, algorithm):
         rospy.Subscriber(topic + "/info", VisoInfo, info_callback)
     else:
         rospy.Subscriber(topic + "/info", FovisInfo, info_callback)
+
+def set_ros_parameter(param_name, param_value, algorithm):
+    '''
+    Function to set a parameter into the ros parameter server.
+    '''
+    # First, set the parameters into the parameters server
+    if type(param_value) is np.float64 or type(param_value) is np.int32:
+        param_value = np.asscalar(param_value)
+
+    # In Fovis algorithm all parameters must be set as string.
+    if (algorithm == "viso2"):
+        rospy.set_param(param_name, param_value)
+    else:
+        rospy.set_param(param_name, str(param_value))
     
 
 if __name__ == "__main__":
@@ -129,9 +260,6 @@ if __name__ == "__main__":
     # Sanity check
     assert(algorithm == "viso2" or algorithm == "fovis")
 
-    # The header for the output file
-    header = [ "Iteration", "Params", "Trans. MAE", "Yaw-Rot. MAE", "Runtime" ]
-
     # Launch the listener to capture the odometry outputs
     odometry_listener(ros_topic)
 
@@ -141,72 +269,29 @@ if __name__ == "__main__":
     # Build the roslaunch command to run the odometry
     cmd = "roslaunch " + roslaunch_package + " " + roslaunch_file
 
-    for i in range(len(parameters)):
-        iteration_num = 0
+    if (brute):
+        # Brute force
+        brute_force(
+            parameters, 
+            gt_file, 
+            sample_step, 
+            cmd, 
+            error_to_min, 
+            algorithm, 
+            save_output_data, 
+            save_output_file)        
+            
+    else:
+        # Optimization
+        optimization(
+            parameters, 
+            gt_file, 
+            sample_step, 
+            cmd, 
+            error_to_min, 
+            algorithm, 
+            max_iter, 
+            save_output_data, 
+            save_output_file)
 
-        # Output to file
-        output = ""
-        results_table = []
-        output += "Optimizing parameter: " + parameters[i]['name'] + "\n"
-        print "================================================="
-        print "Optimizing parameter: " + parameters[i]['name']
-        print "================================================="
-
-        if (brute):
-            # Brute force
-            xopt = -1
-            error = 999
-            x = parameters[i]['min_value']
-            while (x < parameters[i]['max_value'] + parameters[i]['step']):
-                # Call the odometry evaluation function
-                err_ret = function_to_min(x, 
-                    parameters[i]['name'], 
-                    gt_file, 
-                    sample_step, 
-                    cmd, 
-                    error_to_min,
-                    algorithm)
-
-                # Check optimal value
-                if (err_ret < error):
-                    error = err_ret
-                    xopt = x
-                x += parameters[i]['step']
-
-        else:
-            # Launch the optimization function 
-            xopt = fminbound(function_to_min, 
-                parameters[i]['min_value'], 
-                parameters[i]['max_value'], 
-                (parameters[i]['name'], gt_file, sample_step, cmd, error_to_min, algorithm), 
-                1e-05, 
-                max_iter, 
-                False, 
-                3)
-
-        # When the optimization for this parameter finishes, set it to default value again
-        if (algorithm == "viso2"):
-            rospy.set_param(parameters[i]['name'], parameters[i]['default'])
-        else:
-            rospy.set_param(parameters[i]['name'], str(parameters[i]['default']))
-
-         # If user specified a directory to save the optimization data
-        if (save_output_data != ""):
-            param_full_name = parameters[i]['name'].split("/");
-            with open(save_output_data + param_full_name[-1] + ".csv", 'w') as outfile:
-                for row in results_table:
-                    line = "";
-                    for n in range(len(row)):
-                        line += str(row[n]).replace(" ", "") + ";"
-                    line = line[:-1]
-                    outfile.write(line + "\n")
-
-        # Build the results table
-        rows = [header] + results_table
-        results_table.append(["-> BEST <-"] + [np.asscalar(np.round(xopt))] + ["---"] + ["---"] + ["---"])
-        output += utils.toRSTtable([header] + results_table) + "\n"
-
-        # If user specified a file, save the results
-        if (save_output_file != ""):
-            with open(save_output_file, 'a+') as outfile:
-                outfile.write(output)
+        
