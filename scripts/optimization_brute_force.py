@@ -25,38 +25,6 @@ vect = []
 results_table = []
 runtime = []
 
-def optimization(parameters, gt_file, sample_step, cmd, error_to_min, algorithm, max_iter, save_output_data, save_output_file):
-    '''
-    Function to launch the fminbound optimization
-    '''
-    global iteration_num, results_table
-
-    # Loop of parameters. Optimize each parameter individually
-    for i in range(len(parameters)):
-        iteration_num = 0
-
-        # Output to file
-        results_table = []
-        print "================================================="
-        print "Optimizing parameter: " + parameters[i]['name']
-        print "================================================="
-
-        # Launch the optimization function 
-        xopt = fminbound(fminbound_cb, 
-            parameters[i]['min_value'], 
-            parameters[i]['max_value'], 
-            (parameters[i]['name'], gt_file, sample_step, cmd, error_to_min, algorithm), 
-            1e-05, 
-            max_iter, 
-            False, 
-            3)
-
-        # When the optimization for this parameter finishes, set it to default value again
-        set_ros_parameter(parameters[i]['name'], parameters[i]['default'], algorithm)
-
-        # Save results
-        save_output(save_output_data, save_output_file, parameters[i]['name'].split("/")[-1], str(xopt))
-
 def brute_force(parameters, gt_file, sample_step, cmd, error_to_min, algorithm, save_output_data, save_output_file):
     '''
     Function to launch the brute force algorithm.
@@ -99,6 +67,16 @@ def brute_force(parameters, gt_file, sample_step, cmd, error_to_min, algorithm, 
 
         # Then launch the simulation
         err_ret = launch_simulation(cmd, str(params_str), gt_file, sample_step, error_to_min)
+        
+        # Save data
+        if (save_output_data != ""):
+            with open(save_output_data + "brute-force.csv", 'a+') as outfile:
+                row = results_table[-1]
+                line = "";
+                for n in range(len(row)):
+                    line += str(row[n]).replace(" ", "") + ";"
+                line = line[:-1]
+                outfile.write(line + "\n")
 
         # Check optimal value
         if (err_ret < error):
@@ -106,8 +84,8 @@ def brute_force(parameters, gt_file, sample_step, cmd, error_to_min, algorithm, 
             xopt = params_str
         count = count + 1;
 
-    # Save results
-    save_output(save_output_data, save_output_file, "brute-force", xopt)
+    # Save the report when finishes
+    save_output(save_output_file, "brute-force", xopt)
 
 def launch_simulation(cmd, param_value, gt_file, sample_step, error_to_min):
     """
@@ -121,7 +99,10 @@ def launch_simulation(cmd, param_value, gt_file, sample_step, error_to_min):
     os.system(cmd)
 
     # When launch file finishes...
-    errors = post_processing.process(np.array(vect, np.float), gt_file, sample_step)
+    if (len(vect) > 0):
+        errors = post_processing.process(np.array(vect, np.float), gt_file, sample_step)
+    else:
+        errors = [np.nan, np.nan]
 
     # Save the result
     iteration_num += 1
@@ -136,7 +117,7 @@ def launch_simulation(cmd, param_value, gt_file, sample_step, error_to_min):
         ret = math.sqrt(float(errors[0])*float(errors[0]) + float(errors[1])*float(errors[1]))
     return ret
 
-def save_output(save_output_data, save_output_file, param_name, best_value):
+def save_output(save_output_file, param_name, best_value):
     '''
     Function to save the results into files
     '''
@@ -145,16 +126,6 @@ def save_output(save_output_data, save_output_file, param_name, best_value):
     # The header for the output file
     header = [ "Iteration", "Params", "Trans. MAE", "Yaw-Rot. MAE", "Runtime" ]
     output = "Optimizing parameter: " + param_name + "\n"
-
-    # If user specified a directory to save the optimization data
-    if (save_output_data != ""):
-        with open(save_output_data + param_name + ".csv", 'w') as outfile:
-            for row in results_table:
-                line = "";
-                for n in range(len(row)):
-                    line += str(row[n]).replace(" ", "") + ";"
-                line = line[:-1]
-                outfile.write(line + "\n")
 
     # If user specified a file, save the results
     if (save_output_file != ""):
@@ -167,23 +138,6 @@ def save_output(save_output_data, save_output_file, param_name, best_value):
         # Write the file
         with open(save_output_file, 'a+') as outfile:
             outfile.write(output)
-
-def fminbound_cb(param_value, *args):
-    """
-    Function to prepare the data to launch the simulation.
-    """    
-    param_name = args[0]
-    gt_file = args[1]
-    sample_step = args[2]
-    cmd = args[3]
-    error_to_min = args[4]
-    algorithm = args[5]
-
-    # Set the parameter
-    set_ros_parameter(param_name, param_value, algorithm)
-
-    # Start the roslaunch process for visual odometry
-    return launch_simulation(cmd, str(param_value), gt_file, sample_step, error_to_min)
 
 def odometry_callback(data):
     """
@@ -239,7 +193,7 @@ def set_ros_parameter(param_name, param_value, algorithm):
     
 
 if __name__ == "__main__":
-    rospy.init_node('odometry_optimization')
+    rospy.init_node('optimization_brute_force')
 
     # Read parameters from yaml file (see the meaning in yaml file)
     stream = open("etc/params.yaml", 'r')
@@ -249,7 +203,6 @@ if __name__ == "__main__":
     ros_topic = params['ros_topic']
     algorithm = params['algorithm']
     gt_file = params['gt_file']
-    brute = params['brute']
     sample_step = params['sample_step']
     max_iter = params['max_iter']
     error_to_min = params['error_to_min'] 
@@ -269,29 +222,14 @@ if __name__ == "__main__":
     # Build the roslaunch command to run the odometry
     cmd = "roslaunch " + roslaunch_package + " " + roslaunch_file
 
-    if (brute):
-        # Brute force
-        brute_force(
-            parameters, 
-            gt_file, 
-            sample_step, 
-            cmd, 
-            error_to_min, 
-            algorithm, 
-            save_output_data, 
-            save_output_file)        
-            
-    else:
-        # Optimization
-        optimization(
-            parameters, 
-            gt_file, 
-            sample_step, 
-            cmd, 
-            error_to_min, 
-            algorithm, 
-            max_iter, 
-            save_output_data, 
-            save_output_file)
-
+    # Brute force
+    brute_force(
+        parameters, 
+        gt_file, 
+        sample_step, 
+        cmd, 
+        error_to_min, 
+        algorithm, 
+        save_output_data, 
+        save_output_file)
         
