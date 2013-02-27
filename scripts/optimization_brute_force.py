@@ -67,7 +67,7 @@ def brute_force(parameters, gt_file, sample_step, cmd, error_to_min, algorithm, 
 
         # Then launch the simulation
         err_ret = launch_simulation(cmd, str(params_str), gt_file, sample_step, error_to_min)
-        
+
         # Save data
         if (save_output_data != ""):
             with open(save_output_data + "brute-force.csv", 'a+') as outfile:
@@ -212,6 +212,20 @@ if __name__ == "__main__":
 
     # Sanity check
     assert(algorithm == "viso2" or algorithm == "fovis")
+
+    # Check if files exists
+    if (save_output_file != ""):
+        try:
+            with open(save_output_file) as f:
+                os.rename(save_output_file, save_output_file + ".bk")
+        except IOError as e:
+            print 'No report file'
+    if (save_output_data != ""):
+        try:
+            with open(save_output_data + "brute-force.csv") as f:
+                os.rename(save_output_data + "brute-force.csv", save_output_data + "brute-force.csv" + ".bk")
+        except IOError as e:
+            print 'No data file'
 
     # Launch the listener to capture the odometry outputs
     odometry_listener(ros_topic)
