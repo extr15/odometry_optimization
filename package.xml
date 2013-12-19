@@ -1,0 +1,26 @@
+<package>
+  <name>odometry_optimization</name>
+  <version>0.0.1</version>
+  <description>Package for odometry optimization</description>
+  <author email="pl.negre@uib.cat">Pep Lluis Negre</author>
+  <maintainer email="pl.negre@uib.cat">Pep Lluis Negre</maintainer>
+  <license>BSD</license>
+  <url type="website">https://github.com/srv/odometry_optimization</url>
+  <url type="bugtracker">https://github.com/srv/odometry_optimization/issues</url>
+  
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>rospy</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>nav_msgs</build_depend>
+  <build_depend>viso2_ros</build_depend>
+  <build_depend>fovis_ros</build_depend>
+  <build_depend>odometry_evaluation</build_depend>
+
+  <run_depend>rospy</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>nav_msgs</run_depend>
+  <run_depend>viso2_ros</run_depend>
+  <run_depend>fovis_ros</run_depend>
+  <run_depend>odometry_evaluation</run_depend>
+</package>
